@@ -1,3 +1,4 @@
+from django.core.mail import send_mail
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
@@ -30,6 +31,7 @@ def post_detail(request, year, month, day, post):
                              publish__day=day)
     return render(request, 'blog/post/detail.html', {'post': post})
 
+
 def post_share(request, post_id):
     # получение поста по id
     post = get_object_or_404(Post, id=post_id, status='published')
@@ -42,9 +44,15 @@ def post_share(request, post_id):
             # все поля валидны
             cd = form.cleaned_data
             # отправка почты
+            post_url = request.build_absolute_uri(post.get_absolute_url())
+            subject = '{} ({}) recommends you reading "{}"'.format(cd['name'], cd['email'], post.title)
+            message = 'Read "{}" at {}/{}/{}[comments]:'.format(post.title, post_url, cd['name'], cd['comments'])
+            send_mail(subject, message, 'admin@myblog.com', [cd['to']])
+            sent = True
     else:
         form = EmailPostForm()
-    return render(request, 'blog/post/share.html', {'post': post, 'form': form})
+    return render(request, 'blog/post/share.html',
+                  {'post': post, 'form': form, 'sent': sent})
 
 
 class PostListView(ListView):
